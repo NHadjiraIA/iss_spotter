@@ -8,7 +8,9 @@
  */
  const request = require('request');
 
- var url = "https://apigg.ipify.org?format=json"; 
+ var url = "https://api.ipify.org?format=json"; 
+ var urlIp = "https://freegeoip.app/json/"
+ var testUrlForInvalidIp = "https://freegeoip.app/json/invalidIPHere";
  const fetchMyIP = function(callback) { 
  
   // use request to fetch IP address from JSON API
@@ -24,8 +26,43 @@
       return;
     } 
     const ip = JSON.parse(body).ip;
-    callback(null, ip);
+    return callback(null, ip);
   })
   
 }
-module.exports = { fetchMyIP };
+
+const fetchCoordsByIP = function(ip,callback) {
+  let newUrl = urlIp+ip;
+  let result = {
+    "latitude": '',
+    "longitude":''
+  }
+ 
+  request(urlIp,(error,response,body) =>{
+    let errorResult = {
+      "status":'error',
+      "errors":[{"code":response.statusCode,"message":"Passed IP parameter is incorrect","numberErrors":1}]
+   }
+    if (error) {
+    
+      callback(error, null);
+      return;
+    }
+    // if 404 status, assume server error
+    if (response.statusCode !== 200) {
+      //errorResult ["errors"]["code"]="404";
+      const msg = `Status Code ${response.statusCode} when fetching coordinates for IP. Response:  ` ;
+      const errorMessage = msg + JSON.stringify(errorResult); 
+      callback(Error(errorMessage), null); 
+      return;
+    } 
+    const myLatitude = JSON.parse(body).latitude;
+    const myLongitude = JSON.parse(body).longitude;
+    result["latitude"]=myLatitude;
+    result["longitude"] = myLongitude;
+
+    callback(null, result);
+   
+   });
+}
+module.exports = { fetchMyIP, fetchCoordsByIP };
